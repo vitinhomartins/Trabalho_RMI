@@ -19,7 +19,7 @@ import javax.swing.SwingUtilities;
 
 public class ClienteGUI extends JFrame {
 
-    private static final String IP_SERVIDOR = "10.0.0.126";
+    private static final String IP_SERVIDOR = "172.31.68.7";
     private static final int PORTA_REGISTRY = 1099;
 
     private Banco banco;
