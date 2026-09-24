@@ -17,7 +17,7 @@ public class Cliente {
             System.out.println("==============================");
 
             Registry registry =
-                    LocateRegistry.getRegistry("10.0.0.126", 1099);
+                    LocateRegistry.getRegistry("172.31.68.7", 1099);
 
             Banco banco =
                     (Banco) registry.lookup("BancoRMI");
