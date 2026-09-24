@@ -16,11 +16,8 @@ public class Cliente {
             System.out.println("       BANCO RMI");
             System.out.println("==============================");
 
-            System.out.print("IP do servidor: ");
-            String ipServidor = scanner.nextLine();
-
             Registry registry =
-                    LocateRegistry.getRegistry(ipServidor, 1099);
+                    LocateRegistry.getRegistry("10.0.0.126", 1099);
 
             Banco banco =
                     (Banco) registry.lookup("BancoRMI");
