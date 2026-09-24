@@ -19,4 +19,9 @@ public interface Banco extends Remote {
             int destino,
             double valor
     ) throws RemoteException;
+
+    int criarConta(
+            String titular,
+            String senha
+    ) throws RemoteException;
 }

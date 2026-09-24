@@ -8,6 +8,7 @@ import java.util.Map;
 public class BancoImpl extends UnicastRemoteObject implements Banco {
 
     private Map<Integer, Conta> contas;
+    private int proximaConta = 1004;
 
     public BancoImpl() throws RemoteException {
         super(5000);
@@ -114,5 +115,32 @@ public class BancoImpl extends UnicastRemoteObject implements Banco {
         contaDestino.depositar(valor);
 
         return true;
+    }
+
+    @Override
+    public synchronized int criarConta(
+            String titular,
+            String senha) {
+
+        if (titular == null || titular.trim().isEmpty()) {
+            return -1;
+        }
+
+        if (senha == null || senha.trim().isEmpty()) {
+            return -1;
+        }
+
+        int numero = proximaConta++;
+
+        Conta novaConta = new Conta(
+                numero,
+                titular,
+                senha,
+                0.0
+        );
+
+        contas.put(numero, novaConta);
+
+        return numero;
     }
 }
