@@ -2,27 +2,43 @@ package br.edu.bancormi;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.HashMap;
 import java.util.Map;
 
 public class BancoImpl extends UnicastRemoteObject implements Banco {
 
     private final Map<Integer, Conta> contas;
+    private final RepositorioContas repositorio;
     private int proximaConta = 1004;
 
     public BancoImpl() throws RemoteException {
         super(5000);
 
-        contas = new HashMap<>();
+        repositorio = new RepositorioContas();
+        contas = repositorio.carregar();
 
-        contas.put(1001, new Conta(1001, "João", "1234", 1500.00));
+        if (contas.isEmpty()) {
 
-        contas.put(1002, new Conta(1002, "Maria", "5678", 800.00));
+            contas.put(1001, new Conta(1001, "João", "1234", 1500.00));
+            contas.put(1002, new Conta(1002, "Maria", "5678", 800.00));
+            contas.put(1003, new Conta(1003, "Pedro", "9999", 2300.00));
 
-        contas.put(1003, new Conta(1003, "Pedro", "9999", 2300.00));
+            repositorio.salvar(contas);
+
+            System.out.println("[BANCO] Nenhuma conta encontrada.");
+            System.out.println("[BANCO] Contas iniciais criadas.");
+
+        } else {
+
+            proximaConta = contas.keySet()
+                    .stream()
+                    .max(Integer::compareTo)
+                    .orElse(1003) + 1;
+
+            System.out.println("[BANCO] Contas carregadas do arquivo.");
+        }
 
         System.out.println("[BANCO] Banco inicializado.");
-        System.out.println("[BANCO] Contas carregadas: 3");
+        System.out.println("[BANCO] Contas carregadas: " + contas.size());
     }
 
     @Override
@@ -34,7 +50,6 @@ public class BancoImpl extends UnicastRemoteObject implements Banco {
 
         if (c == null) {
             System.out.println("[LOGIN] Conta " + conta + " não encontrada.");
-
             return false;
         }
 
@@ -88,7 +103,14 @@ public class BancoImpl extends UnicastRemoteObject implements Banco {
 
         c.depositar(valor);
 
-        System.out.printf("[DEPOSITO] Conta %d: R$ %.2f -> R$ %.2f%n", conta, saldoAnterior, c.getSaldo());
+        repositorio.salvar(contas);
+
+        System.out.printf(
+                "[DEPOSITO] Conta %d: R$ %.2f -> R$ %.2f%n",
+                conta,
+                saldoAnterior,
+                c.getSaldo()
+        );
 
         return true;
     }
@@ -118,70 +140,112 @@ public class BancoImpl extends UnicastRemoteObject implements Banco {
 
         if (!c.sacar(valor)) {
 
-            System.out.println("[SAQUE] Saque recusado - saldo insuficiente ou valor inválido.");
+            System.out.println(
+                    "[SAQUE] Saque recusado - saldo insuficiente ou valor inválido."
+            );
 
             return false;
         }
 
-        System.out.printf("[SAQUE] Conta %d: R$ %.2f -> R$ %.2f%n", conta, saldoAnterior, c.getSaldo());
+        repositorio.salvar(contas);
+
+        System.out.printf(
+                "[SAQUE] Conta %d: R$ %.2f -> R$ %.2f%n",
+                conta,
+                saldoAnterior,
+                c.getSaldo()
+        );
 
         return true;
     }
 
     @Override
-    public synchronized boolean transferir(int origem, String senha, int destino, double valor) {
+    public synchronized boolean transferir(
+            int origem,
+            String senha,
+            int destino,
+            double valor
+    ) {
 
-        System.out.printf("[TRANSFERENCIA] %d -> %d | R$ %.2f%n", origem, destino, valor);
+        System.out.printf(
+                "[TRANSFERENCIA] %d -> %d | R$ %.2f%n",
+                origem,
+                destino,
+                valor
+        );
 
         Conta contaOrigem = contas.get(origem);
         Conta contaDestino = contas.get(destino);
 
         if (contaOrigem == null) {
 
-            System.out.println("[TRANSFERENCIA] Conta de origem não encontrada.");
+            System.out.println(
+                    "[TRANSFERENCIA] Conta de origem não encontrada."
+            );
 
             return false;
         }
 
         if (contaDestino == null) {
 
-            System.out.println("[TRANSFERENCIA] Conta de destino não encontrada.");
+            System.out.println(
+                    "[TRANSFERENCIA] Conta de destino não encontrada."
+            );
 
             return false;
         }
 
         if (!contaOrigem.getSenha().equals(senha)) {
 
-            System.out.println("[TRANSFERENCIA] Senha incorreta.");
+            System.out.println(
+                    "[TRANSFERENCIA] Senha incorreta."
+            );
 
             return false;
         }
 
         if (valor <= 0) {
 
-            System.out.println("[TRANSFERENCIA] Valor inválido.");
+            System.out.println(
+                    "[TRANSFERENCIA] Valor inválido."
+            );
 
             return false;
         }
 
         double saldoOrigemAnterior = contaOrigem.getSaldo();
-
         double saldoDestinoAnterior = contaDestino.getSaldo();
 
         if (!contaOrigem.sacar(valor)) {
 
-            System.out.println("[TRANSFERENCIA] Saldo insuficiente.");
+            System.out.println(
+                    "[TRANSFERENCIA] Saldo insuficiente."
+            );
 
             return false;
         }
 
         contaDestino.depositar(valor);
 
-        System.out.printf("[TRANSFERENCIA] Conta %d: R$ %.2f -> R$ %.2f%n", origem, saldoOrigemAnterior, contaOrigem.getSaldo());
+        repositorio.salvar(contas);
 
-        System.out.printf("[TRANSFERENCIA] Conta %d: R$ %.2f -> R$ %.2f%n", destino, saldoDestinoAnterior, contaDestino.getSaldo());
+        System.out.printf(
+                "[TRANSFERENCIA] Conta %d: R$ %.2f -> R$ %.2f%n",
+                origem,
+                saldoOrigemAnterior,
+                contaOrigem.getSaldo()
+        );
 
-        System.out.println("[TRANSFERENCIA] Transferência realizada com sucesso.");
+        System.out.printf(
+                "[TRANSFERENCIA] Conta %d: R$ %.2f -> R$ %.2f%n",
+                destino,
+                saldoDestinoAnterior,
+                contaDestino.getSaldo()
+        );
+
+        System.out.println(
+                "[TRANSFERENCIA] Transferência realizada com sucesso."
+        );
 
         return true;
     }
@@ -189,31 +253,49 @@ public class BancoImpl extends UnicastRemoteObject implements Banco {
     @Override
     public synchronized int criarConta(String titular, String senha) {
 
-        System.out.println("[CONTA] Solicitação de criação de conta.");
+        System.out.println(
+                "[CONTA] Solicitação de criação de conta."
+        );
 
         if (titular == null || titular.trim().isEmpty()) {
 
-            System.out.println("[CONTA] Criação recusada - titular inválido.");
+            System.out.println(
+                    "[CONTA] Criação recusada - titular inválido."
+            );
 
             return -1;
         }
 
         if (senha == null || senha.trim().isEmpty()) {
 
-            System.out.println("[CONTA] Criação recusada - senha inválida.");
+            System.out.println(
+                    "[CONTA] Criação recusada - senha inválida."
+            );
 
             return -1;
         }
 
         int numero = proximaConta++;
 
-        Conta novaConta = new Conta(numero, titular, senha, 0.0);
+        Conta novaConta = new Conta(
+                numero,
+                titular,
+                senha,
+                0.0
+        );
 
         contas.put(numero, novaConta);
 
-        System.out.println("[CONTA] Nova conta criada.");
+        repositorio.salvar(contas);
 
-        System.out.println("[CONTA] Número: " + numero + " | Titular: " + titular);
+        System.out.println(
+                "[CONTA] Nova conta criada."
+        );
+
+        System.out.println(
+                "[CONTA] Número: " + numero
+                        + " | Titular: " + titular
+        );
 
         return numero;
     }
